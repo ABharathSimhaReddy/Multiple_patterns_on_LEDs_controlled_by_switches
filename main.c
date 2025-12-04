@@ -10,31 +10,54 @@ int i = 0;                               // Step counter used by pattern2
 //===========================
 void pattern1()
 {
-    static int step = 0;                 // Pattern step counter (0?16)
+    static int step = 0;                 // Pattern step counter (0–16)
+    static int reverse = 0;              // Direction flag: 0 = normal, 1 = reverse
 
     if (delay-- == 0)                    // Execute only when delay expires
     {
-        if (step < 8)                    // First 8 steps ? LEDs grow from LSB to MSB
+        if (reverse == 0)                // Normal direction: LSB → MSB and back
         {
-            PORTB |= (1 << step);        // Turn ON bits one-by-one
+            if (step < 8)                // First 8 steps – LEDs grow LSB to MSB
+            {
+                PORTB |= (1 << step);    // Turn ON bits one-by-one
+            }
+            else if (step < 16)          // Next 8 steps – LEDs shrink MSB to LSB
+            {
+                PORTB >>= 1;             // Shift bits right (turn OFF from MSB)
+            }
+            else                          // 16 steps complete
+            {
+                step = 0;                // Reset step
+                PORTB = 0x00;            // Clear LEDs
+                delay = 30000;           // Reload delay
+                reverse = 1;             // Switch to reverse direction
+                return;
+            }
         }
-        else if (step < 16)              // Next 8 steps ? LEDs shrink from MSB to LSB
+        else                              // Reverse direction: MSB → LSB and back
         {
-            PORTB >>= 1;                 // Shift bits right (turn OFF from MSB)
-        }
-        else                              // When 16 steps complete
-        {
-            step = 0;                    // Restart step count
-            PORTB = 0x00;                // Clear LEDs
-            delay = 30000;               // Reload delay
-            return;                      // Exit early
+            if (step < 8)                // First 8 steps – LEDs grow MSB to LSB
+            {
+                PORTB |= (0x80 >> step); // Turn ON bits one-by-one from MSB
+            }
+            else if (step < 16)          // Next 8 steps – LEDs shrink LSB to MSB
+            {
+                PORTB <<= 1;             // Shift bits left (turn OFF from LSB)
+            }
+            else                          // 16 steps complete
+            {
+                step = 0;                // Reset step
+                PORTB = 0x00;            // Clear LEDs
+                delay = 30000;           // Reload delay
+                reverse = 0;             // Switch back to normal direction
+                return;
+            }
         }
 
-        step++;                          // Go to next step
+        step++;                          // Move to next step
         delay = 30000;                   // Reload delay
     }
 }
-
 
 //===========================
 //   PATTERN ? 2 (TRAIN BOGIE SAME STYLE)
@@ -184,3 +207,4 @@ void main(void)
         }
     }
 }
+
